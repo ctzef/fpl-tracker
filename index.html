@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FPL Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #080c14;
+    --bg-card: rgba(255,255,255,0.03);
+    --bg-card-hover: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.06);
+    --border-light: rgba(255,255,255,0.03);
+    --text-primary: #ffffff;
+    --text-secondary: #c8d3e0;
+    --text-muted: #5a6b7f;
+    --text-dim: #3a4555;
+    --accent: #00b87a;
+    --accent-dim: rgba(0,184,122,0.12);
+    --accent-border: rgba(0,184,122,0.25);
+    --red: #EF5350;
+    --blue: #64B5F6;
+    --amber: #FFB74D;
+    --purple: #AB47BC;
+    --font-display: 'Outfit', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-primary);
+    font-family: var(--font-body);
+    color: var(--text-secondary);
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .fade-up { animation: fadeUp 0.4s ease both; }
+  .delay-1 { animation-delay: 0.05s; }
+  .delay-2 { animation-delay: 0.1s; }
+  .delay-3 { animation-delay: 0.15s; }
+  .delay-4 { animation-delay: 0.2s; }
+  .delay-5 { animation-delay: 0.25s; }
+  .delay-6 { animation-delay: 0.3s; }
+
+  /* ─── Header ─────────────────────────────────── */
+  .header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(0,184,122,0.04) 0%, transparent 100%);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, #00b87a, #00856a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; box-shadow: 0 4px 20px rgba(0,184,122,0.3);
+  }
+  .logo-title { font-family: var(--font-display); font-size: 22px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.5px; line-height: 1; }
+  .logo-title span { color: var(--accent); }
+  .logo-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-top: 2px; font-family: var(--font-mono); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+    border-radius: 8px; background: var(--accent-dim); border: 1px solid var(--accent-border);
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+  .live-text { font-size: 11px; font-weight: 600; color: var(--accent); font-family: var(--font-mono); }
+  .update-badge {
+    padding: 6px 12px; border-radius: 8px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
+  }
+
+  /* ─── Tabs ───────────────────────────────────── */
+  .tabs {
+    display: flex; gap: 2px; padding: 12px 28px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 10px 20px; font-size: 13px; font-weight: 600;
+    border: none; background: transparent; color: var(--text-muted);
+    border-bottom: 2px solid transparent; cursor: pointer;
+    font-family: var(--font-body); transition: all 0.2s;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab-btn:hover { color: var(--text-secondary); }
+  .tab-btn.active { background: var(--accent-dim); color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ─── Content ────────────────────────────────── */
+  .content { padding: 20px 28px; max-height: calc(100vh - 130px); overflow-y: auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── Cards ──────────────────────────────────── */
+  .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .card {
+    padding: 18px; border-radius: 12px;
+    background: var(--bg-card); border: 1px solid var(--border);
+  }
+  .card-label { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.2px; font-family: var(--font-mono); margin-bottom: 8px; }
+  .card-value { font-size: 26px; font-weight: 900; font-family: var(--font-display); line-height: 1; }
+  .card-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .section-title { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.2px; font-family: var(--font-mono); margin-bottom: 14px; }
+
+  /* ─── Player rows ────────────────────────────── */
+  .player-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 8px; margin-bottom: 6px;
+    background: rgba(255,255,255,0.02); transition: background 0.2s; cursor: default;
+  }
+  .player-row:hover { background: var(--bg-card-hover); }
+  .player-row.highlight { background: rgba(0,184,122,0.08); border: 1px solid rgba(0,184,122,0.2); }
+  .player-info { display: flex; align-items: center; gap: 10px; }
+  .player-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .player-meta { font-size: 11px; color: var(--text-muted); }
+  .player-rank {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; font-family: var(--font-mono);
+  }
+  .player-pts { font-size: 18px; font-weight: 800; color: var(--accent); font-family: var(--font-mono); }
+  .player-pts-label { font-size: 10px; color: var(--text-muted); }
+
+  /* ─── Badges ─────────────────────────────────── */
+  .badge {
+    font-size: 10px; font-weight: 800; letter-spacing: 1px; padding: 2px 6px;
+    border-radius: 3px; font-family: var(--font-mono); display: inline-block;
+  }
+  .badge-fwd { background: var(--red); color: var(--bg-primary); }
+  .badge-mid { background: #42A5F5; color: var(--bg-primary); }
+  .badge-def { background: #66BB6A; color: var(--bg-primary); }
+  .badge-gkp { background: var(--amber); color: var(--bg-primary); }
+  .badge-ucl {
+    background: rgba(25,118,210,0.25); color: var(--blue);
+    border: 1px solid rgba(25,118,210,0.3); font-size: 9px;
+  }
+  .badge-inj {
+    background: rgba(239,83,80,0.2); color: var(--red);
+    border: 1px solid rgba(239,83,80,0.3); font-size: 9px;
+  }
+
+  .fdr-badge {
+    padding: 3px 8px; border-radius: 4px; font-size: 11px;
+    font-weight: 700; color: #fff; font-family: var(--font-mono);
+    display: inline-block;
+  }
+  .fdr-1 { background: #257d5a; }
+  .fdr-2 { background: #00b87a; }
+  .fdr-3 { background: #B0A050; }
+  .fdr-4 { background: #e8553d; }
+  .fdr-5 { background: #8b1538; }
+
+  /* ─── Injury row ─────────────────────────────── */
+  .injury-row {
+    padding: 10px 12px; border-radius: 8px; margin-bottom: 6px;
+    background: rgba(239,83,80,0.06); border: 1px solid rgba(239,83,80,0.15);
+  }
+  .injury-note { font-size: 12px; color: var(--red); margin-top: 4px; }
+
+  /* ─── Table ──────────────────────────────────── */
+  .filters { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+  .search-input {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04); color: var(--text-secondary);
+    font-size: 13px; font-family: var(--font-body); outline: none; width: 220px;
+  }
+  .search-input:focus { border-color: var(--accent-border); }
+  .filter-btn {
+    padding: 6px 14px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03); color: var(--text-muted);
+    font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-body);
+  }
+  .filter-btn.active { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th {
+    padding: 10px 10px; text-align: center; font-size: 10px; font-weight: 700;
+    color: var(--text-muted); letter-spacing: 1px; font-family: var(--font-mono);
+    cursor: pointer; white-space: nowrap; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.04); user-select: none;
+  }
+  .data-table th:first-child { text-align: left; }
+  .data-table th:hover { color: var(--text-secondary); }
+  .data-table td { padding: 10px 10px; text-align: center; border-bottom: 1px solid var(--border-light); }
+  .data-table td:first-child { text-align: left; }
+  .data-table tr { transition: background 0.2s; cursor: pointer; }
+  .data-table tr:hover { background: rgba(255,255,255,0.03); }
+  .data-table tr.selected { background: rgba(0,184,122,0.06); }
+
+  .team-pip { width: 3px; height: 20px; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+
+  /* ─── Pred bar ───────────────────────────────── */
+  .pred-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .pred-bar-track { width: 60px; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+  .pred-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .pred-bar-val { font-size: 13px; font-weight: 700; font-family: var(--font-mono); }
+
+  /* ─── Sparkline (CSS only) ──────────────────── */
+  .spark-row { display: flex; gap: 3px; align-items: flex-end; height: 24px; }
+  .spark-bar { width: 8px; border-radius: 2px; transition: height 0.3s; min-height: 2px; }
+
+  /* ─── Minutes heat ──────────────────────────── */
+  .mins-row { display: flex; gap: 2px; }
+  .mins-block { width: 10px; height: 16px; border-radius: 2px; }
+
+  /* ─── Fixture row ────────────────────────────── */
+  .fixture-row {
+    display: grid; grid-template-columns: 1fr 50px 70px 50px 1fr;
+    align-items: center; padding: 14px 20px; border-radius: 10px;
+    background: var(--bg-card); border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .fixture-team { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .fixture-time { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); text-align: center; }
+
+  .fdr-legend {
+    margin-top: 20px; padding: 16px; border-radius: 10px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    display: flex; gap: 16px; align-items: center; justify-content: center;
+  }
+  .fdr-legend-label { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+
+  /* ─── Prediction rank ────────────────────────── */
+  .pred-row {
+    display: grid; grid-template-columns: 30px 1fr 60px 1fr 90px 60px;
+    align-items: center; padding: 10px 14px; border-radius: 8px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 6px;
+  }
+  .pred-row.top { background: rgba(0,184,122,0.06); border-color: rgba(0,184,122,0.15); }
+  .pred-rank { font-size: 14px; font-weight: 800; font-family: var(--font-mono); }
+  .pred-big { font-size: 20px; font-weight: 900; font-family: var(--font-display); }
+  .pred-bar-lg { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .pred-bar-lg-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+
+  .model-factors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
+  .factor-card { padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); }
+  .factor-name { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+  .factor-weight { font-size: 11px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
+  .factor-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ─── Detail panel ───────────────────────────── */
+  .detail-panel {
+    margin-top: 16px; padding: 24px; border-radius: 12px;
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.08);
+  }
+  .detail-name { font-size: 22px; font-weight: 900; color: var(--text-primary); font-family: var(--font-display); }
+  .detail-badges { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+  .detail-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: 20px; }
+  .detail-stat { padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); }
+  .detail-stat-label { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); letter-spacing: 0.8px; margin-bottom: 4px; }
+  .detail-stat-value { font-size: 18px; font-weight: 800; color: var(--text-primary); font-family: var(--font-display); }
+  .close-btn {
+    background: rgba(255,255,255,0.06); border: none; color: var(--text-muted);
+    width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px;
+  }
+
+  /* ─── Loading ────────────────────────────────── */
+  .loading {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 80px 20px; color: var(--text-muted);
+  }
+  .loading-spinner {
+    width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg { padding: 24px; border-radius: 12px; background: rgba(239,83,80,0.08); border: 1px solid rgba(239,83,80,0.2); text-align: center; }
+  .error-msg h3 { color: var(--red); font-family: var(--font-display); margin-bottom: 8px; }
+
+  @media (max-width: 900px) {
+    .cards-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: repeat(3, 1fr); }
+    .model-factors { grid-template-columns: 1fr; }
+    .header { padding: 16px; }
+    .content { padding: 16px; }
+    .tabs { padding: 8px 16px 0; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header fade-up">
+  <div class="header-left">
+    <div class="logo">⚽</div>
+    <div>
+      <div class="logo-title">FPL <span>Tracker</span></div>
+      <div class="logo-sub" id="gw-label">LOADING...</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div><span class="live-text">LIVE</span></div>
+    <div class="update-badge" id="update-time">—</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs fade-up delay-1">
+  <button class="tab-btn active" data-tab="overview">Overview</button>
+  <button class="tab-btn" data-tab="players">Player Stats</button>
+  <button class="tab-btn" data-tab="fixtures">Fixtures</button>
+  <button class="tab-btn" data-tab="predictions">Predictions</button>
+</div>
+
+<div class="content">
+  <!-- Loading state -->
+  <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
+    <div>Loading FPL data...</div>
+  </div>
+
+  <!-- Error state -->
+  <div id="error" style="display:none;"></div>
+
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview" class="tab-panel active" style="display:none;"></div>
+
+  <!-- PLAYERS TAB -->
+  <div id="tab-players" class="tab-panel" style="display:none;"></div>
+
+  <!-- FIXTURES TAB -->
+  <div id="tab-fixtures" class="tab-panel" style="display:none;"></div>
+
+  <!-- PREDICTIONS TAB -->
+  <div id="tab-predictions" class="tab-panel" style="display:none;"></div>
+</div>
+
+<script>
+// ─── Config ─────────────────────────────────────
+// Change this to your hosted JSON URL when deployed
+const DATA_URL = './output/fpl_dashboard.json';
+
+// Team colors
+const TEAM_COLORS = {
+  MCI:"#6CABDD",LIV:"#C8102E",CHE:"#034694",ARS:"#EF0107",NEW:"#241F20",
+  AVL:"#670E36",MUN:"#DA291C",TOT:"#132257",BHA:"#0057B8",WHU:"#7A263A",
+  BOU:"#DA291C",NFO:"#DD0000",WOL:"#FDB913",FUL:"#000000",BRE:"#e30613",
+  CRY:"#1B458F",EVE:"#003399",BUR:"#6C1D45",IPS:"#0044AA",LEI:"#003090",
+};
+
+// ─── Helpers ────────────────────────────────────
+const momentumEmoji = m => ({hot:"🔥",rising:"📈",stable:"➡️",cooling:"📉",declining:"⬇️",volatile:"🎲"}[m]||"—");
+const momentumColor = m => ({hot:"#FF6B35",rising:"#4CAF50",stable:"#8B9DAF",cooling:"#FFB74D",declining:"#EF5350",volatile:"#AB47BC"}[m]||"#8B9DAF");
+const fdrColor = f => ({1:"#257d5a",2:"#00b87a",3:"#B0A050",4:"#e8553d",5:"#8b1538"}[f]||"#555");
+const fdrLabel = f => ({1:"Very Easy",2:"Easy",3:"Medium",4:"Hard",5:"Very Hard"}[f]||"");
+const predColor = v => v>=7?"#00b87a":v>=5?"#B0A050":v>=3?"#e8553d":"#8b1538";
+const posBadge = pos => `<span class="badge badge-${pos.toLowerCase()}">${pos}</span>`;
+
+function sparkBars(scores, color) {
+  if (!scores || !scores.length) return '';
+  const max = Math.max(...scores, 1);
+  return `<div class="spark-row">${scores.map((s,i) =>
+    `<div class="spark-bar" style="height:${Math.max(2, (s/max)*24)}px;background:${i===scores.length-1?color:'rgba(255,255,255,0.15)'};"></div>`
+  ).join('')}</div>`;
+}
+
+function minutesHeat(mins) {
+  if (!mins || !mins.length) return '';
+  return `<div class="mins-row">${mins.map(m =>
+    `<div class="mins-block" title="${m} min" style="background:rgba(0,184,122,${0.15+(m/90)*0.85});"></div>`
+  ).join('')}</div>`;
+}
+
+function predBar(val) {
+  const pct = Math.min((val/12)*100, 100);
+  const c = predColor(val);
+  return `<div class="pred-bar-wrap">
+    <div class="pred-bar-track"><div class="pred-bar-fill" style="width:${pct}%;background:${c};"></div></div>
+    <span class="pred-bar-val" style="color:${c};">${val.toFixed(1)}</span>
+  </div>`;
+}
+
+// ─── State ──────────────────────────────────────
+let DATA = null;
+let sortBy = 'predictedPts';
+let sortDir = 'desc';
+let posFilter = 'ALL';
+let searchTerm = '';
+let selectedPlayer = null;
+
+// ─── Data Loading ───────────────────────────────
+async function loadData() {
+  try {
+    const resp = await fetch(DATA_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    DATA = await resp.json();
+    document.getElementById('loading').style.display = 'none';
+    initDashboard();
+  } catch (e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').innerHTML = `
+      <div class="error-msg">
+        <h3>Couldn't load FPL data</h3>
+        <p style="color:var(--text-muted);margin-bottom:12px;">Make sure <code>fpl_dashboard.json</code> is in the <code>output/</code> folder.</p>
+        <p style="color:var(--text-muted);font-size:12px;">Run <code style="color:var(--accent);">python3 run.py</code> first to generate the data, then refresh this page.</p>
+        <p style="color:var(--text-dim);font-size:11px;margin-top:12px;">Error: ${e.message}</p>
+      </div>`;
+  }
+}
+
+// ─── Init ───────────────────────────────────────
+function initDashboard() {
+  const meta = DATA.meta;
+  document.getElementById('gw-label').textContent = `GAMEWEEK ${meta.nextGW} · ${new Date().toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short'})}`;
+
+  if (meta.updatedAt) {
+    const d = new Date(meta.updatedAt);
+    document.getElementById('update-time').textContent = `Updated ${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
+  }
+
+  renderOverview();
+  renderPlayers();
+  renderFixtures();
+  renderPredictions();
+
+  document.getElementById('tab-overview').style.display = 'block';
+}
+
+// ─── Tab switching ──────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
+    const panel = document.getElementById('tab-' + btn.dataset.tab);
+    panel.style.display = 'block';
+    panel.classList.add('active');
+  });
+});
+
+// ─── Overview Tab ───────────────────────────────
+function renderOverview() {
+  const players = DATA.players;
+  const captain = DATA.captainPicks || [];
+  const injuries = DATA.injuries || [];
+  const diffs = DATA.differentials || [];
+  const hotPlayers = players.filter(p => p.momentum === 'hot' || p.momentum === 'rising').sort((a,b) => b.form - a.form).slice(0, 6);
+  const uclPlayers = players.filter(p => p.euroComp && !p.injured).slice(0, 5);
+
+  const avgPred = players.length ? (players.reduce((s,p) => s + p.predictedPts, 0) / players.length).toFixed(1) : '0';
+  const topPick = captain[0];
+
+  let html = `
+  <div class="cards-grid">
+    <div class="card fade-up delay-1">
+      <div class="card-label">TOP PREDICTED</div>
+      <div class="card-value" style="color:var(--accent);">${topPick ? topPick.webName || topPick.name : '—'}</div>
+      <div class="card-sub">${topPick ? topPick.predictedPts.toFixed(1) + ' pts' : ''}</div>
+    </div>
+    <div class="card fade-up delay-2">
+      <div class="card-label">INJURIES</div>
+      <div class="card-value" style="color:var(--red);">${injuries.length}</div>
+      <div class="card-sub">flagged players</div>
+    </div>
+    <div class="card fade-up delay-3">
+      <div class="card-label">UCL MIDWEEK</div>
+      <div class="card-value" style="color:var(--blue);">${new Set(uclPlayers.map(p=>p.team)).size}</div>
+      <div class="card-sub">teams in action</div>
+    </div>
+    <div class="card fade-up delay-4">
+      <div class="card-label">AVG PREDICTED</div>
+      <div class="card-value" style="color:var(--amber);">${avgPred}</div>
+      <div class="card-sub">pts this GW</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card fade-up delay-5">
+      <div class="section-title">👑 CAPTAIN PICKS</div>
+      ${captain.slice(0,5).map((p,i) => `
+        <div class="player-row ${i===0?'highlight':''}">
+          <div class="player-info">
+            <div class="player-rank" style="background:${i===0?'var(--accent)':'rgba(255,255,255,0.08)'};color:${i===0?'var(--bg-primary)':'var(--text-muted)'};">${i+1}</div>
+            <div>
+              <div class="player-name">${p.webName || p.name}</div>
+              <div class="player-meta">${p.team} · ${p.nextFixture} · FDR ${p.fdr}</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div class="player-pts">${p.predictedPts.toFixed(1)}</div>
+            <div class="player-pts-label">predicted</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="card fade-up delay-6">
+      <div class="section-title">🚑 INJURY & ROTATION ALERTS</div>
+      ${injuries.length === 0 ? '<div style="padding:20px;text-align:center;color:var(--text-muted);">No injuries ✅</div>' :
+        injuries.slice(0,5).map(p => `
+          <div class="injury-row">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div><span style="font-weight:700;color:var(--text-primary);">${p.webName || p.name}</span> <span style="color:var(--text-muted);margin-left:8px;">${p.team}</span></div>
+              ${posBadge(p.position)}
+            </div>
+            <div class="injury-note">${p.injuryNote || 'No details'}</div>
+          </div>
+        `).join('')}
+      ${uclPlayers.length ? `
+        <div style="margin-top:14px;">
+          <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px;font-family:var(--font-mono);margin-bottom:8px;">UCL ROTATION RISK</div>
+          ${uclPlayers.slice(0,4).map(p => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:6px;margin-bottom:4px;background:rgba(25,118,210,0.06);">
+              <span style="font-size:12px;">${p.webName || p.name} <span style="color:var(--text-muted);">(${p.team})</span></span>
+              <span class="badge badge-ucl">UCL</span>
+            </div>
+          `).join('')}
+        </div>` : ''}
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card fade-up">
+      <div class="section-title">🔥 IN-FORM PLAYERS</div>
+      ${hotPlayers.map(p => `
+        <div class="player-row">
+          <div class="player-info">
+            <span style="font-size:16px;">${momentumEmoji(p.momentum)}</span>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${p.webName || p.name}</div>
+              <div class="player-meta">${p.team} · Form ${p.form}</div>
+            </div>
+          </div>
+          ${sparkBars(p.last5, momentumColor(p.momentum))}
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="card fade-up">
+      <div class="section-title">💎 DIFFERENTIALS (&lt;15% OWNED)</div>
+      ${diffs.slice(0,6).map(p => `
+        <div class="player-row">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${p.webName || p.name}</div>
+            <div class="player-meta">${p.team} · ${p.ownership}% owned · ${p.nextFixture}</div>
+          </div>
+          ${predBar(p.predictedPts)}
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+
+  document.getElementById('tab-overview').innerHTML = html;
+}
+
+// ─── Players Tab ────────────────────────────────
+function renderPlayers() {
+  const el = document.getElementById('tab-players');
+
+  function render() {
+    let filtered = DATA.players
+      .filter(p => posFilter === 'ALL' || p.position === posFilter)
+      .filter(p => {
+        if (!searchTerm) return true;
+        const q = searchTerm.toLowerCase();
+        return (p.name||'').toLowerCase().includes(q) || (p.webName||'').toLowerCase().includes(q) || (p.team||'').toLowerCase().includes(q);
+      })
+      .sort((a,b) => sortDir === 'desc' ? (b[sortBy]||0) - (a[sortBy]||0) : (a[sortBy]||0) - (b[sortBy]||0));
+
+    let html = `
+    <div class="filters">
+      <input type="text" class="search-input" id="player-search" placeholder="Search player or team..." value="${searchTerm}">
+      ${['ALL','FWD','MID','DEF','GKP'].map(pos =>
+        `<button class="filter-btn ${posFilter===pos?'active':''}" data-pos="${pos}">${pos}</button>`
+      ).join('')}
+    </div>
+    <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);">
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th data-col="name" style="text-align:left;">PLAYER</th>
+            <th>POS</th>
+            <th data-col="price">PRICE</th>
+            <th data-col="form">FORM</th>
+            <th data-col="totalPoints">TOTAL</th>
+            <th>LAST 5</th>
+            <th>MINS</th>
+            <th data-col="xG">xG</th>
+            <th data-col="xA">xA</th>
+            <th>TREND</th>
+            <th data-col="predictedPts">PRED. PTS</th>
+            <th data-col="fdr">FDR</th>
+          </tr></thead>
+          <tbody>
+            ${filtered.slice(0, 50).map((p, idx) => `
+              <tr data-id="${p.id}" class="${selectedPlayer && selectedPlayer.id===p.id?'selected':''}">
+                <td>
+                  <span class="team-pip" style="background:${TEAM_COLORS[p.team]||'#555'};"></span>
+                  <strong style="color:var(--text-primary);">${p.webName || p.name}</strong>
+                  <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">
+                    ${p.team}
+                    ${p.injured?'<span style="color:var(--red);"> ● INJ</span>':''}
+                    ${p.euroComp?'<span style="color:var(--blue);"> ● '+p.euroComp+'</span>':''}
+                  </div>
+                </td>
+                <td>${posBadge(p.position)}</td>
+                <td style="font-family:var(--font-mono);font-weight:600;font-size:12px;">£${p.price}m</td>
+                <td style="font-family:var(--font-mono);font-weight:700;color:${p.form>=7?'var(--accent)':p.form>=5?'#B0A050':'var(--red)'};">${p.form}</td>
+                <td style="font-family:var(--font-mono);font-weight:600;">${p.totalPoints}</td>
+                <td>${sparkBars(p.last5, momentumColor(p.momentum))}</td>
+                <td>${minutesHeat(p.minutesPlayed)}</td>
+                <td style="font-family:var(--font-mono);font-size:12px;">${(p.xG||0).toFixed(2)}</td>
+                <td style="font-family:var(--font-mono);font-size:12px;">${(p.xA||0).toFixed(2)}</td>
+                <td><span style="color:${momentumColor(p.momentum)};font-size:12px;font-weight:600;">${momentumEmoji(p.momentum)} ${p.momentum||''}</span></td>
+                <td>${predBar(p.predictedPts||0)}</td>
+                <td><span class="fdr-badge fdr-${p.fdr}">${p.fdr}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+    // Detail panel
+    if (selectedPlayer) {
+      const p = selectedPlayer;
+      const stats = [
+        {l:'TOTAL POINTS',v:p.totalPoints},{l:'GOALS',v:p.goalsScored},{l:'ASSISTS',v:p.assists},
+        {l:'CLEAN SHEETS',v:p.cleanSheets},{l:'BONUS AVG',v:(p.bonusAvg||0).toFixed(1)},{l:'DREAM TEAM',v:(p.dreamTeamCount||0)+'x'},
+        {l:'xG /90',v:(p.xG||0).toFixed(2)},{l:'xA /90',v:(p.xA||0).toFixed(2)},{l:'ICT INDEX',v:(p.ict||0).toFixed(1)},
+        {l:'OWNERSHIP',v:p.selectedBy||p.ownership+'%'},{l:'PRICE',v:'£'+p.price+'m'},{l:'PREDICTED',v:p.predictedPts.toFixed(1)+' pts'},
+      ];
+      html += `
+      <div class="detail-panel fade-up">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div class="detail-name">${p.name || p.webName}</div>
+            <div class="detail-badges">
+              ${posBadge(p.position)}
+              <span style="font-size:12px;color:var(--text-muted);">${p.team}</span>
+              ${p.euroComp?'<span class="badge badge-ucl">'+p.euroComp+'</span>':''}
+              ${p.injured?'<span class="badge badge-inj">INJ</span><span style="font-size:10px;color:var(--red);">'+p.injuryNote+'</span>':''}
+            </div>
+          </div>
+          <button class="close-btn" id="close-detail">✕</button>
+        </div>
+        <div class="detail-grid">
+          ${stats.map(s => `<div class="detail-stat"><div class="detail-stat-label">${s.l}</div><div class="detail-stat-value">${s.v}</div></div>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    el.innerHTML = html;
+
+    // Bind events
+    el.querySelector('#player-search').addEventListener('input', e => { searchTerm = e.target.value; render(); });
+    el.querySelectorAll('.filter-btn').forEach(b => b.addEventListener('click', () => { posFilter = b.dataset.pos; render(); }));
+    el.querySelectorAll('.data-table th[data-col]').forEach(th => th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortBy === col) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+      else { sortBy = col; sortDir = 'desc'; }
+      render();
+    }));
+    el.querySelectorAll('.data-table tbody tr').forEach(tr => tr.addEventListener('click', () => {
+      const id = parseInt(tr.dataset.id);
+      if (selectedPlayer && selectedPlayer.id === id) selectedPlayer = null;
+      else selectedPlayer = DATA.players.find(p => p.id === id);
+      render();
+    }));
+    const closeBtn = el.querySelector('#close-detail');
+    if (closeBtn) closeBtn.addEventListener('click', () => { selectedPlayer = null; render(); });
+  }
+
+  render();
+}
+
+// ─── Fixtures Tab ───────────────────────────────
+function renderFixtures() {
+  const fixtures = DATA.fixtures || [];
+  let html = `
+    <div class="section-title">GAMEWEEK ${DATA.meta.nextGW} FIXTURES</div>
+    ${fixtures.map((f, i) => `
+      <div class="fixture-row fade-up" style="animation-delay:${i*0.04}s;">
+        <div style="text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+          ${f.homeEuro?'<span class="badge badge-ucl">'+f.homeEuro+'</span>':''}
+          <span class="fixture-team">${f.home}</span>
+          <div class="team-pip" style="background:${TEAM_COLORS[f.home]||'#555'};height:20px;margin:0;"></div>
+        </div>
+        <div style="text-align:center;"><span class="fdr-badge fdr-${f.awayFdr}">${f.awayFdr}</span></div>
+        <div class="fixture-time">${f.time}</div>
+        <div style="text-align:center;"><span class="fdr-badge fdr-${f.homeFdr}">${f.homeFdr}</span></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="team-pip" style="background:${TEAM_COLORS[f.away]||'#555'};height:20px;margin:0;"></div>
+          <span class="fixture-team">${f.away}</span>
+          ${f.awayEuro?'<span class="badge badge-ucl">'+f.awayEuro+'</span>':''}
+        </div>
+      </div>
+    `).join('')}
+    <div class="fdr-legend">
+      <span class="fdr-legend-label">FDR SCALE:</span>
+      ${[1,2,3,4,5].map(f => `<span class="fdr-badge fdr-${f}">${f}</span> <span style="font-size:10px;color:var(--text-muted);">${fdrLabel(f)}</span>`).join(' ')}
+    </div>`;
+
+  document.getElementById('tab-fixtures').innerHTML = html;
+}
+
+// ─── Predictions Tab ────────────────────────────
+function renderPredictions() {
+  const players = [...DATA.players].sort((a,b) => b.predictedPts - a.predictedPts);
+
+  let html = `
+    <div class="section-title">GW${DATA.meta.nextGW} PREDICTED POINTS — RANKED</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;">
+      Based on form, fixture difficulty, xG/xA, minutes, injury status, and midweek fatigue
+    </div>
+    ${players.slice(0,20).map((p,i) => {
+      const pct = (p.predictedPts / 12) * 100;
+      const c = predColor(p.predictedPts);
+      return `
+        <div class="pred-row ${i<3?'top':''} fade-up" style="animation-delay:${i*0.03}s;">
+          <div class="pred-rank" style="color:${i<3?'var(--accent)':'var(--text-muted)'};">${i+1}</div>
+          <div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:14px;font-weight:700;color:var(--text-primary);">${p.webName || p.name}</span>
+              ${p.injured?'<span style="font-size:10px;color:var(--red);">●</span>':''}
+              ${p.euroComp?'<span style="font-size:10px;color:var(--blue);">●</span>':''}
+            </div>
+            <div class="player-meta">${p.team} · ${p.nextFixture}</div>
+          </div>
+          <div style="text-align:center;">${posBadge(p.position)}</div>
+          <div style="padding:0 10px;">
+            <div class="pred-bar-lg"><div class="pred-bar-lg-fill" style="width:${pct}%;background:linear-gradient(90deg,${c}88,${c});"></div></div>
+          </div>
+          <div style="text-align:center;"><span class="pred-big" style="color:${c};">${p.predictedPts.toFixed(1)}</span><span style="font-size:11px;color:var(--text-muted);margin-left:4px;">pts</span></div>
+          <div style="text-align:center;"><span class="fdr-badge fdr-${p.fdr}">${p.fdr}</span></div>
+        </div>`;
+    }).join('')}
+
+    <div class="card" style="margin-top:24px;padding:20px;">
+      <div class="section-title">PREDICTION MODEL FACTORS</div>
+      <div class="model-factors">
+        ${[
+          {f:'Recent Form',w:'25%',d:'Weighted rolling avg of last 5 GWs'},
+          {f:'Fixture Difficulty',w:'20%',d:'FPL FDR + home/away adjustment'},
+          {f:'Expected Stats',w:'20%',d:'xG, xA, and shot volume'},
+          {f:'Minutes Played',w:'15%',d:'Consistency and rotation risk'},
+          {f:'Injury Status',w:'10%',d:'Availability and match fitness'},
+          {f:'Midweek Fatigue',w:'10%',d:'UCL/EL/Conference impact'},
+        ].map(item => `
+          <div class="factor-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span class="factor-name">${item.f}</span>
+              <span class="factor-weight">${item.w}</span>
+            </div>
+            <div class="factor-desc">${item.d}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+
+  document.getElementById('tab-predictions').innerHTML = html;
+}
+
+// ─── Boot ───────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>

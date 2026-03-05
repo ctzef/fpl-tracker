@@ -4,18 +4,17 @@
 name: FPL Daily Update
 
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '0 6 * * *'
-  
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    
     permissions:
       contents: write
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -1,0 +1,91 @@
+# .github/workflows/fpl-daily.yml
+# Automated daily FPL Tracker update
+#
+# This workflow:
+# 1. Fetches latest data from the FPL API
+# 2. Runs the prediction model
+# 3. Generates a JSON file for the dashboard
+# 4. Sends a daily email briefing
+# 5. Commits updated data to the repo (for Vercel/Netlify to pick up)
+#
+# Setup:
+# 1. Add these secrets to your GitHub repo (Settings > Secrets):
+#    - FPL_EMAIL_TO: your email address
+#    - FPL_SMTP_USER: Gmail address (for SMTP) or leave empty for Resend
+#    - FPL_SMTP_PASSWORD: Gmail App Password
+#    --- OR ---
+#    - FPL_RESEND_API_KEY: Resend API key
+#    - FPL_RESEND_FROM: sender address
+#
+# 2. The workflow runs daily at 6:00 AM UTC (adjust cron below)
+# 3. You can also trigger it manually via the "Run workflow" button
+
+name: FPL Daily Update
+
+on:
+  schedule:
+    # Runs at 6:00 AM UTC every day
+    # Adjust timing based on when FPL data updates (usually after midnight UK time)
+    - cron: '0 6 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      send_email:
+        description: 'Send email report'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write  # Needed to commit updated data
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run FPL Tracker
+        env:
+          FPL_EMAIL_TO: ${{ secrets.FPL_EMAIL_TO }}
+          FPL_SMTP_USER: ${{ secrets.FPL_SMTP_USER }}
+          FPL_SMTP_PASSWORD: ${{ secrets.FPL_SMTP_PASSWORD }}
+          FPL_RESEND_API_KEY: ${{ secrets.FPL_RESEND_API_KEY }}
+          FPL_RESEND_FROM: ${{ secrets.FPL_RESEND_FROM }}
+        run: |
+          cd fpl-backend
+          
+          # Determine email flag
+          SEND_EMAIL="${{ github.event.inputs.send_email || 'true' }}"
+          
+          if [ "$SEND_EMAIL" = "true" ] && [ -n "$FPL_EMAIL_TO" ]; then
+            python run.py --email --output ../public/data
+          else
+            python run.py --output ../public/data
+          fi
+
+      - name: Commit updated data
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add public/data/ || true
+          git diff --staged --quiet || git commit -m "📊 FPL data update $(date +'%Y-%m-%d %H:%M UTC')"
+          git push || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fpl-data
+          path: public/data/
+          retention-days: 7

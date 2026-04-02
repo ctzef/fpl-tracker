@@ -4,7 +4,7 @@
     "nextGW": 32,
     "totalPlayers": 825,
     "processedPlayers": 200,
-    "updatedAt": "2026-04-01T07:06:09.681877Z"
+    "updatedAt": "2026-04-02T06:57:46.213307Z"
   },
   "players": [
     {
@@ -130,7 +130,7 @@
       "teamId": 1,
       "position": "DEF",
       "price": 7.2,
-      "ownership": 43.1,
+      "ownership": 43.0,
       "form": 10.0,
       "totalPoints": 173,
       "last5": [
@@ -165,7 +165,7 @@
       "fdr": 3,
       "euroComp": "UCL",
       "dreamTeamCount": 5,
-      "selectedBy": "43.1%",
+      "selectedBy": "43.0%",
       "minutes": 2165,
       "starts": 24,
       "predictedPts": 6.5,
@@ -927,7 +927,7 @@
       "teamFull": "Everton",
       "teamId": 9,
       "position": "MID",
-      "price": 5.2,
+      "price": 5.3,
       "ownership": 4.3,
       "form": 6.7,
       "totalPoints": 139,
@@ -4120,7 +4120,7 @@
       "teamId": 3,
       "position": "MID",
       "price": 5.0,
-      "ownership": 2.0,
+      "ownership": 1.9,
       "form": 3.0,
       "totalPoints": 105,
       "last5": [
@@ -4155,7 +4155,7 @@
       "fdr": 3,
       "euroComp": null,
       "dreamTeamCount": 2,
-      "selectedBy": "2.0%",
+      "selectedBy": "1.9%",
       "minutes": 2108,
       "starts": 25,
       "predictedPts": 3.5,
@@ -5544,7 +5544,7 @@
       "teamFull": "Man Utd",
       "teamId": 14,
       "position": "GKP",
-      "price": 5.0,
+      "price": 5.1,
       "ownership": 2.8,
       "form": 2.0,
       "totalPoints": 76,
@@ -11560,7 +11560,7 @@
       "teamId": 1,
       "position": "DEF",
       "price": 7.2,
-      "ownership": 43.1,
+      "ownership": 43.0,
       "form": 10.0,
       "totalPoints": 173,
       "last5": [
@@ -11595,7 +11595,7 @@
       "fdr": 3,
       "euroComp": "UCL",
       "dreamTeamCount": 5,
-      "selectedBy": "43.1%",
+      "selectedBy": "43.0%",
       "minutes": 2165,
       "starts": 24,
       "predictedPts": 6.5,
